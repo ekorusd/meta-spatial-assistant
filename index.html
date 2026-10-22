@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Spatial AI Smart Glasses & Ring Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main Split Screen Container */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Left Side: AR HUD Glasses Simulation */
+        .hud-section {
+            flex: 2;
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+            border-right: 2px solid #334155;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hud-title {
+            color: #38bdf8;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .hud-status {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        /* Visual Target Objects (Glasses Camera Stream) */
+        .viewport-area {
+            position: relative;
+            flex: 1;
+            margin: 20px 0;
+            border-radius: 16px;
+            border: 1px dashed #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .visual-object {
+            width: 200px;
+            height: 140px;
+            background: #1e293b;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .visual-object:hover {
+            transform: translateY(-4px);
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .visual-object.segmented {
+            border-color: #22c55e;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .visual-object .tag {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 10px;
+            background: #3b82f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .visual-object.segmented .tag {
+            background: #22c55e;
+        }
+
+        /* AI Overlay Card on Glasses HUD */
+        .ai-overlay-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid #38bdf8;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .ai-overlay-card h3 {
+            font-size: 16px;
+            color: #38bdf8;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-overlay-card p {
+            font-size: 14px;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        /* Right Side: Smart Ring Controller Panel */
+        .controller-section {
+            flex: 1;
+            background: #0f172a;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #f8fafc;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .gesture-btn {
+            background: #334155;
+            color: #f8fafc;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .gesture-btn:hover {
+            background: #475569;
+        }
+
+        .gesture-btn:active {
+            background: #3b82f6;
+        }
+
+        .log-console {
+            background: #020617;
+            border-radius: 10px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #22c55e;
+            height: 180px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Left Side: Glasses AR HUD Screen -->
+    <div class="hud-section">
+        <div class="hud-header">
+            <div class="hud-title">Meta Spatial AR Viewport</div>
+            <div class="hud-status">
+                <span>FPS: 60</span>
+                <span>SAM 3.1: Active</span>
+                <span>Ring BLE: Connected</span>
+            </div>
+        </div>
+
+        <!-- Camera Feed Target Objects -->
+        <div class="viewport-area">
+            <div class="visual-object" id="obj-doc" onclick="selectObject('obj-doc', 'Live Document Report')">
+                <span class="tag">SAM 3.1 Mask</span>
+                📄 Live Document
+            </div>
+            <div class="visual-object" id="obj-light" onclick="selectObject('obj-light', 'Smart Light Switch')">
+                <span class="tag">SAM 3.1 Mask</span>
+                💡 Smart Light
+            </div>
+        </div>
+
+        <!-- AI Overlay HUD Display -->
+        <div class="ai-overlay-card">
+            <h3>🤖 Muse Spark AI Reasoning</h3>
+            <p id="ai-response-text">Select a visual object on the HUD or trigger ring micro-gestures on the right panel to execute actions.</p>
+        </div>
+    </div>
+
+    <!-- Right Side: Smart Ring Controller Panel -->
+    <div class="controller-section">
+        <div class="panel-card">
+            <div class="panel-title">Smart Ring Micro-Gesture Controls</div>
+            <div class="btn-grid">
+                <button class="gesture-btn" onclick="triggerGesture('single_click')">Single Click</button>
+                <button class="gesture-btn" onclick="triggerGesture('double_click')">Double Click</button>
+                <button class="gesture-btn" onclick="triggerGesture('long_press')">Long Press</button>
+                <button class="gesture-btn" onclick="triggerGesture('swipe_up')">Swipe Up</button>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-title">Backend API Execution Logs</div>
+            <div class="log-console" id="log-console">
+                [System Initialized]: Ready to interface with backend main.py...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedObjectId = null;
+    let selectedObjectName = null;
+
+    function appendLog(msg) {
+        const consoleElem = document.getElementById('log-console');
+        const timestamp = new Date().toLocaleTimeString();
+        consoleElem.innerHTML += `<br>[${timestamp}] ${msg}`;
+        consoleElem.scrollTop = consoleElem.scrollHeight;
+    }
+
+    function selectObject(id, name) {
+        document.querySelectorAll('.visual-object').forEach(el => el.classList.remove('segmented'));
+        
+        selectedObjectId = id;
+        selectedObjectName = name;
+        
+        document.getElementById(id).classList.add('segmented');
+        appendLog(`[SAM 3.1]: Object '${name}' successfully segmented.`);
+        
+        // Call FastAPI backend endpoint /api/segment-object
+        fetch('/api/segment-object', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('ai-response-text').innerText = `SAM 3.1 identified '${name}'. Trigger a ring micro-gesture to proceed with actions.`;
+            })
+            .catch(() => {
+                document.getElementById('ai-response-text').innerText = `SAM 3.1 identified '${name}'. Ready to process gesture actions.`;
+            });
+    }
+
+    function triggerGesture(gestureType) {
+        if (!selectedObjectId) {
+            appendLog(`[Warning]: Please select an object on the HUD first!`);
+            alert('Please click on an object (Live Document or Smart Light) in the glasses HUD first!');
+            return;
+        }
+
+        appendLog(`[Smart Ring]: Micro-gesture '${gestureType}' detected.`);
+
+        // Call FastAPI backend endpoint /api/process-reasoning
+        fetch('/api/process-reasoning', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                gesture_type: gestureType,
+                target_object_id: selectedObjectId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('ai-response-text').innerText = data.hud_text;
+            appendLog(`[Muse Spark]: AI reasoning output displayed on HUD.`);
+        })
+        .catch(err => {
+            // Local fallback message if server is not running
+            const fallbackMsg = `Muse Spark processed '${gestureType}' gesture on '${selectedObjectName}'. (Local execution complete)`;
+            document.getElementById('ai-response-text').innerText = fallbackMsg;
+            appendLog(`[Muse Spark]: Executed locally.`);
+        });
+    }
+</script>
+
+</body>
+</html>
